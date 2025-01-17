@@ -36,28 +36,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
               };
 
-              // Function to wait for an element to appear and click it
-              const waitForElementAndClick = async (selector) => {
-                const timeout = 10000;
-                const pollInterval = 100;
-                const startTime = Date.now();
-
-                return new Promise((resolve, reject) => {
-                  const interval = setInterval(() => {
-                    const element = document.querySelector(selector);
-                    if (element) {
-                      clearInterval(interval);
-                      element.click();
-                      console.log(`Element with selector "${selector}" clicked successfully.`);
-                      resolve();
-                    } else if (Date.now() - startTime > timeout) {
-                      clearInterval(interval);
-                      reject(`Element with selector "${selector}" not found or not visible within ${timeout}ms`);
-                    }
-                  }, pollInterval);
-                });
-              };
-
               // Update the Title field
               setInputValueByLabel('Title', product.name);
 
@@ -160,25 +138,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 setInputValueByLabel('Brand', product.brand);
                 setInputValueByLabel('Description', product.description);
                 console.log('Brand and Description updated successfully.');
-
-                // Click the Next button
-                waitForElementAndClick('div[aria-label="Next"][role="button"]')
-                  .then(() => {
-                    console.log('Next button clicked successfully.');
-
-                    // Wait for the Publish button and click it
-                    waitForElementAndClick('div[aria-label="Publish"][role="button"]')
-                      .then(() => {
-                        console.log('Publish button clicked successfully.');
-                      })
-                      .catch((error) => {
-                        console.error('Error:', error);
-                      });
-                  })
-                  .catch((error) => {
-                    console.error('Error clicking Next button:', error);
-                  });
               };
+
+              // Inject geolocation spoofing to set location to France (Paris)
+              if (navigator.geolocation) {
+                const originalGeolocation = navigator.geolocation.getCurrentPosition;
+
+                navigator.geolocation.getCurrentPosition = (successCallback, errorCallback, options) => {
+                  const fakePosition = {
+                    coords: {
+                      latitude: 48.8566,  // Latitude for Paris
+                      longitude: 2.3522,  // Longitude for Paris
+                      accuracy: 100,
+                    },
+                  };
+                  successCallback(fakePosition);
+                  console.log('Geolocation spoofed to Paris, France');
+                };
+              }
 
               // Start the process: Select Category -> Condition -> Brand & Description
               selectCategory('Tools', () => {
